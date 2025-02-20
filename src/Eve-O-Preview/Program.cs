@@ -11,7 +11,7 @@ namespace EveOPreview
 {
 	static class Program
 	{
-		private static string MUTEX_NAME = "EVE-O Preview Single Instance Mutex";
+		private static string MUTEX_NAME = "EVE-O-Preview Single Instance Mutex";
 
 		private static Mutex _singleInstanceMutex;
 
@@ -68,6 +68,9 @@ namespace EveOPreview
 		{
 			Application.EnableVisualStyles();
 			Application.SetCompatibleTextRenderingDefault(false);
+#if WINDOWS
+			Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
+#endif
 		}
 
 		private static IApplicationController InitializeApplicationController()

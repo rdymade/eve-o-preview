@@ -1,7 +1,10 @@
+using EveOPreview.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace EveOPreview.View
 {
@@ -10,7 +13,9 @@ namespace EveOPreview.View
 		#region Private fields
 		private readonly ApplicationContext _context;
 		private readonly Dictionary<ViewZoomAnchor, RadioButton> _zoomAnchorMap;
+		private readonly Dictionary<ViewZoomAnchor, RadioButton> _overlayLabelMap;
 		private ViewZoomAnchor _cachedThumbnailZoomAnchor;
+		private ViewZoomAnchor _cachedOverlayLabelAnchor;
 		private bool _suppressEvents;
 		private Size _minimumSize;
 		private Size _maximumSize;
@@ -20,16 +25,23 @@ namespace EveOPreview.View
 		{
 			this._context = context;
 			this._zoomAnchorMap = new Dictionary<ViewZoomAnchor, RadioButton>();
+			this._overlayLabelMap = new Dictionary<ViewZoomAnchor, RadioButton>();
 			this._cachedThumbnailZoomAnchor = ViewZoomAnchor.NW;
 			this._suppressEvents = false;
-			this._minimumSize = new Size(80, 60);
-			this._maximumSize = new Size(80, 60);
+			this._minimumSize = new Size(20, 20);
+			this._maximumSize = new Size(20, 20);
 
 			InitializeComponent();
 
 			this.ThumbnailsList.DisplayMember = "Title";
 
 			this.InitZoomAnchorMap();
+			this.InitOverlayLabelMap();
+			this.InitFormSize();
+
+
+			this.AnimationStyleCombo.DataSource = Enum.GetValues(typeof(AnimationStyle));
+
 		}
 
 		public bool MinimizeToTray
@@ -73,6 +85,11 @@ namespace EveOPreview.View
 		{
 			get => this.MinimizeInactiveClientsCheckBox.Checked;
 			set => this.MinimizeInactiveClientsCheckBox.Checked = value;
+		}
+		public ViewAnimationStyle WindowsAnimationStyle
+		{
+			get => (ViewAnimationStyle)this.AnimationStyleCombo.SelectedItem;
+			set => this.AnimationStyleCombo.SelectedIndex = (int)value;
 		}
 
 		public bool ShowThumbnailsAlwaysOnTop
@@ -149,6 +166,36 @@ namespace EveOPreview.View
 			}
 		}
 
+		public ViewZoomAnchor OverlayLabelAnchor
+		{
+			get
+			{
+				if (this._overlayLabelMap[this._cachedOverlayLabelAnchor].Checked)
+				{
+					return this._cachedOverlayLabelAnchor;
+				}
+
+				foreach (KeyValuePair<ViewZoomAnchor, RadioButton> valuePair in this._overlayLabelMap)
+				{
+					if (!valuePair.Value.Checked)
+					{
+						continue;
+					}
+
+					this._cachedOverlayLabelAnchor = valuePair.Key;
+					return this._cachedOverlayLabelAnchor;
+				}
+
+				// Default Value
+				return ViewZoomAnchor.NW;
+			}
+			set
+			{
+				this._cachedOverlayLabelAnchor = value;
+				this._overlayLabelMap[this._cachedOverlayLabelAnchor].Checked = true;
+			}
+		}
+
 		public bool ShowThumbnailOverlays
 		{
 			get => this.ShowThumbnailOverlaysCheckBox.Checked;
@@ -159,6 +206,26 @@ namespace EveOPreview.View
 		{
 			get => this.ShowThumbnailFramesCheckBox.Checked;
 			set => this.ShowThumbnailFramesCheckBox.Checked = value;
+		}
+		public bool LockThumbnailLocation
+		{
+			get => this.LockThumbnailLocationCheckbox.Checked;
+			set => this.LockThumbnailLocationCheckbox.Checked = value;
+		}
+		public bool ThumbnailSnapToGrid
+		{
+			get => this.ThumbnailSnapToGridCheckBox.Checked;
+			set => this.ThumbnailSnapToGridCheckBox.Checked = value;
+		}
+		public int ThumbnailSnapToGridSizeX
+		{
+			get => (int)ThumbnailSnapToGridSizeXNumericEdit.Value;
+			set => ThumbnailSnapToGridSizeXNumericEdit.Value = value;
+		}
+		public int ThumbnailSnapToGridSizeY
+		{
+			get => (int)ThumbnailSnapToGridSizeYNumericEdit.Value;
+			set => ThumbnailSnapToGridSizeYNumericEdit.Value = value;
 		}
 
 		public bool EnableActiveClientHighlight
@@ -177,6 +244,26 @@ namespace EveOPreview.View
 			}
 		}
 		private Color _activeClientHighlightColor;
+
+		public Color OverlayLabelColor
+		{
+			get => this._OverlayLabelColor;
+			set
+			{
+				this._OverlayLabelColor = value;
+				this.OverlayLabelColorButton.BackColor = value;
+			}
+		}
+		private Color _OverlayLabelColor;
+
+		public int OverlayLabelSize
+		{
+			get => (int)this.OverlayLabelSizeNumericEdit.Value;
+			set
+			{
+				this.OverlayLabelSizeNumericEdit.Value = value;
+			}
+		}
 
 		public new void Show()
 		{
@@ -329,6 +416,22 @@ namespace EveOPreview.View
 			this.OptionChanged_Handler(sender, e);
 		}
 
+		private void OverlayLabelColorButton_Click(object sender, EventArgs e)
+		{
+			using (ColorDialog dialog = new ColorDialog())
+			{
+				dialog.Color = this.OverlayLabelColor;
+
+				if (dialog.ShowDialog() != DialogResult.OK)
+				{
+					return;
+				}
+				this.OverlayLabelColor = dialog.Color;
+			}
+
+			this.OptionChanged_Handler(sender, e);
+		}
+
 		private void ThumbnailsList_ItemCheck_Handler(object sender, ItemCheckEventArgs e)
 		{
 			if (!(this.ThumbnailsList.Items[e.Index] is IThumbnailDescription selectedItem))
@@ -390,6 +493,43 @@ namespace EveOPreview.View
 			this._zoomAnchorMap[ViewZoomAnchor.SW] = this.ZoomAanchorSWRadioButton;
 			this._zoomAnchorMap[ViewZoomAnchor.S] = this.ZoomAanchorSRadioButton;
 			this._zoomAnchorMap[ViewZoomAnchor.SE] = this.ZoomAanchorSERadioButton;
+		}
+		private void InitOverlayLabelMap()
+		{
+			this._overlayLabelMap[ViewZoomAnchor.NW] = this.OverlayLabelNWRadioButton;
+            this._overlayLabelMap[ViewZoomAnchor.N] = this.OverlayLabelNRadioButton;
+            this._overlayLabelMap[ViewZoomAnchor.NE] = this.OverlayLabelNERadioButton;
+            this._overlayLabelMap[ViewZoomAnchor.W] = this.OverlayLabelWRadioButton;
+            this._overlayLabelMap[ViewZoomAnchor.C] = this.OverlayLabelCRadioButton;
+            this._overlayLabelMap[ViewZoomAnchor.E] = this.OverlayLabelERadioButton;
+            this._overlayLabelMap[ViewZoomAnchor.SW] = this.OverlayLabelSWRadioButton;
+            this._overlayLabelMap[ViewZoomAnchor.S] = this.OverlayLabelSRadioButton;
+            this._overlayLabelMap[ViewZoomAnchor.SE] = this.OverlayLabelSERadioButton;
+        }
+		private void InitFormSize()
+		{
+			const int BUFFER_PIXEL_AMOUNT = 8;
+			// resize form height based on tabbed control item height
+			var tabControl = (System.Windows.Forms.TabControl)this.Controls.Find("ContentTabControl", false).First();
+			if (tabControl != null)
+			{
+				var furnitureSize = this.Height - tabControl.Height;
+				var calculatedHeight = (tabControl.ItemSize.Width * tabControl.Controls.Count) + furnitureSize + BUFFER_PIXEL_AMOUNT;
+				if (this.Height < calculatedHeight)
+				{
+					this.Height = calculatedHeight;
+				}
+			}
+		}
+
+		private void AnimationStyleCombo_SelectedIndexChanged(object sender, EventArgs e)
+		{
+
+		}
+
+		private void GeneralSettingsPanel_Paint(object sender, PaintEventArgs e)
+		{
+
 		}
 	}
 }

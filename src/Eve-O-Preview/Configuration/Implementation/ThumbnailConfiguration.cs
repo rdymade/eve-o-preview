@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
@@ -35,10 +36,41 @@ namespace EveOPreview.Configuration.Implementation
 				{ "EVE - Example Tackle Toon 3", 3 }
 			};
 
+			this.CycleGroup3ForwardHotkeys = new List<string> { "" };
+			this.CycleGroup3BackwardHotkeys = new List<string> { "" };
+			this.CycleGroup3ClientsOrder = new Dictionary<string, int>
+			{
+				{ "EVE - cycle group 3", 1 },
+			};
+			this.CycleGroup4ForwardHotkeys = new List<string> { "" };
+			this.CycleGroup4BackwardHotkeys = new List<string> { "" };
+			this.CycleGroup4ClientsOrder = new Dictionary<string, int>
+			{
+				{ "EVE - cycle group 4", 1 },
+			};
+			this.CycleGroup5ForwardHotkeys = new List<string> { "" };
+			this.CycleGroup5BackwardHotkeys = new List<string> { "" };
+			this.CycleGroup5ClientsOrder = new Dictionary<string, int>
+			{
+				{ "EVE - cycle group 5", 1 },
+			};
+
 			this.PerClientActiveClientHighlightColor = new Dictionary<string, Color>
 			{
 				{"EVE - Example Toon 1", Color.Red},
 				{"EVE - Example Toon 2", Color.Green}
+			};
+
+			this.PerClientThumbnailSize = new Dictionary<string, Size>
+			{
+				{"EVE - Example Toon 1", new Size(200, 200)},
+				{"EVE - Example Toon 2", new Size(200, 200)}
+			};
+
+			this.PerClientZoomAnchor = new Dictionary<string, ZoomAnchor>
+			{
+				{"EVE - Example Toon 1", ZoomAnchor.N },
+				{"EVE - Example Toon 2", ZoomAnchor.S}
 			};
 
 			this.PerClientLayout = new Dictionary<string, Dictionary<string, Point>>();
@@ -48,16 +80,25 @@ namespace EveOPreview.Configuration.Implementation
 			this.DisableThumbnail = new Dictionary<string, bool>();
 			this.PriorityClients = new List<string>();
 
+			this.ExecutablesToPreview = new List<string> { "exefile" };
+
 			this.MinimizeToTray = false;
 			this.ThumbnailRefreshPeriod = 500;
+			this.ThumbnailResizeTimeoutPeriod = 500;
 
-			this.EnableCompatibilityMode = false;
+#if LINUX
+			this.EnableWineCompatibilityMode = true;
+#else
+			this.EnableWineCompatibilityMode = false;
+#endif
 
 			this.ThumbnailOpacity = 0.5;
 
 			this.EnableClientLayoutTracking = false;
 			this.HideActiveClientThumbnail = false;
+			this.HideLoginClientThumbnail = false;
 			this.MinimizeInactiveClients = false;
+			this.WindowsAnimationStyle = AnimationStyle.NoAnimation;
 			this.ShowThumbnailsAlwaysOnTop = true;
 			this.EnablePerClientThumbnailLayouts = false;
 
@@ -73,13 +114,22 @@ namespace EveOPreview.Configuration.Implementation
 			this.ThumbnailZoomEnabled = false;
 			this.ThumbnailZoomFactor = 2;
 			this.ThumbnailZoomAnchor = ZoomAnchor.NW;
+            this.OverlayLabelAnchor = ZoomAnchor.NW;
 
-			this.ShowThumbnailOverlays = true;
+            this.ShowThumbnailOverlays = true;
 			this.ShowThumbnailFrames = false;
+			this.LockThumbnailLocation = false;
 
-			this.EnableActiveClientHighlight = false;
+			this.ThumbnailSnapToGrid = true;
+			this.ThumbnailSnapToGridSizeX = 100;
+			this.ThumbnailSnapToGridSizeY = 50;
+
+            this.EnableActiveClientHighlight = false;
 			this.ActiveClientHighlightColor = Color.GreenYellow;
 			this.ActiveClientHighlightThickness = 3;
+
+			this.OverlayLabelColor = Color.Orange;
+			this.OverlayLabelSize = 10;
 
 			this.LoginThumbnailLocation = new Point(5, 5);
 		}
@@ -106,14 +156,47 @@ namespace EveOPreview.Configuration.Implementation
 		[JsonProperty("CycleGroup2ClientsOrder")]
 		public Dictionary<string, int> CycleGroup2ClientsOrder { get; set; }
 
+		[JsonProperty("CycleGroup3ForwardHotkeys")]
+		public List<string> CycleGroup3ForwardHotkeys { get; set; }
+
+		[JsonProperty("CycleGroup3BackwardHotkeys")]
+		public List<string> CycleGroup3BackwardHotkeys { get; set; }
+
+		[JsonProperty("CycleGroup3ClientsOrder")]
+		public Dictionary<string, int> CycleGroup3ClientsOrder { get; set; }
+
+		[JsonProperty("CycleGroup4ForwardHotkeys")]
+		public List<string> CycleGroup4ForwardHotkeys { get; set; }
+
+		[JsonProperty("CycleGroup4BackwardHotkeys")]
+		public List<string> CycleGroup4BackwardHotkeys { get; set; }
+
+		[JsonProperty("CycleGroup4ClientsOrder")]
+		public Dictionary<string, int> CycleGroup4ClientsOrder { get; set; }
+
+		[JsonProperty("CycleGroup5ForwardHotkeys")]
+		public List<string> CycleGroup5ForwardHotkeys { get; set; }
+
+		[JsonProperty("CycleGroup5BackwardHotkeys")]
+		public List<string> CycleGroup5BackwardHotkeys { get; set; }
+
+		[JsonProperty("CycleGroup5ClientsOrder")]
+		public Dictionary<string, int> CycleGroup5ClientsOrder { get; set; }
+
 		[JsonProperty("PerClientActiveClientHighlightColor")]
 		public Dictionary<string, Color> PerClientActiveClientHighlightColor { get; set; }
 
+		[JsonProperty("PerClientThumbnailSize")]
+		public Dictionary<string, Size> PerClientThumbnailSize { get; set; }
+
+		[JsonProperty("PerClientZoomAnchor")]
+		public Dictionary<string, ZoomAnchor> PerClientZoomAnchor{ get; set; }
 		public bool MinimizeToTray { get; set; }
 		public int ThumbnailRefreshPeriod { get; set; }
+		public int ThumbnailResizeTimeoutPeriod { get; set; }
 
-		[JsonProperty("CompatibilityMode")]
-		public bool EnableCompatibilityMode { get; set; }
+		[JsonProperty("WineCompatibilityMode")]
+		public bool EnableWineCompatibilityMode { get; set; }
 
 		[JsonProperty("ThumbnailsOpacity")]
 		public double ThumbnailOpacity { get; set; }
@@ -133,7 +216,9 @@ namespace EveOPreview.Configuration.Implementation
 		}
 
 		public bool HideActiveClientThumbnail { get; set; }
+		public bool HideLoginClientThumbnail { get; set; }
 		public bool MinimizeInactiveClients { get; set; }
+		public AnimationStyle WindowsAnimationStyle { get; set; }
 		public bool ShowThumbnailsAlwaysOnTop { get; set; }
 
 		public bool EnablePerClientThumbnailLayouts
@@ -163,14 +248,20 @@ namespace EveOPreview.Configuration.Implementation
 		public bool ThumbnailZoomEnabled { get; set; }
 		public int ThumbnailZoomFactor { get; set; }
 		public ZoomAnchor ThumbnailZoomAnchor { get; set; }
+		public ZoomAnchor OverlayLabelAnchor { get; set; }
 
 		public bool ShowThumbnailOverlays { get; set; }
 		public bool ShowThumbnailFrames { get; set; }
+		public bool LockThumbnailLocation { get; set; }
+		public bool ThumbnailSnapToGrid { get; set; }
+		public int ThumbnailSnapToGridSizeX {  get; set; }
+		public int ThumbnailSnapToGridSizeY { get; set; }
 
 		public bool EnableActiveClientHighlight { get; set; }
 
 		public Color ActiveClientHighlightColor { get; set; }
-
+		public Color OverlayLabelColor { get; set; }
+		public int OverlayLabelSize {  get; set; }
 		public int ActiveClientHighlightThickness { get; set; }
 
 		[JsonProperty("LoginThumbnailLocation")]
@@ -188,6 +279,8 @@ namespace EveOPreview.Configuration.Implementation
 		private Dictionary<string, bool> DisableThumbnail { get; set; }
 		[JsonProperty]
 		private List<string> PriorityClients { get; set; }
+		[JsonProperty]
+		private List<string> ExecutablesToPreview { get; set; }
 
 		public Point GetThumbnailLocation(string currentClient, string activeClient, Point defaultLocation)
 		{
@@ -211,6 +304,17 @@ namespace EveOPreview.Configuration.Implementation
 			}
 
 			return this.FlatLayout.TryGetValue(currentClient, out location) ? location : defaultLocation;
+		}
+
+		public Size GetThumbnailSize(string currentClient, string activeClient, Size defaultSize)
+		{
+			Size sizeOfThumbnail;
+			return this.PerClientThumbnailSize.TryGetValue(currentClient, out sizeOfThumbnail) ? sizeOfThumbnail : defaultSize;
+		}
+		public ZoomAnchor GetZoomAnchor(string currentClient, ZoomAnchor defaultZoomAnchor)
+		{
+			ZoomAnchor zoomAnchor;
+			return this.PerClientZoomAnchor.TryGetValue(currentClient, out zoomAnchor) ? zoomAnchor : defaultZoomAnchor;
 		}
 
 		public void SetThumbnailLocation(string currentClient, string activeClient, Point location)
@@ -279,6 +383,10 @@ namespace EveOPreview.Configuration.Implementation
 		{
 			return this.PriorityClients.Contains(currentClient);
 		}
+		public bool IsExecutableToPreview(string processName)
+		{
+			return this.ExecutablesToPreview.Any(s => s.Equals(processName, StringComparison.OrdinalIgnoreCase));
+		}
 
 		public bool IsThumbnailDisabled(string currentClient)
 		{
@@ -295,7 +403,12 @@ namespace EveOPreview.Configuration.Implementation
 		/// </summary>
 		public void ApplyRestrictions()
 		{
+#if LINUX
+			this.ThumbnailRefreshPeriod = ThumbnailConfiguration.ApplyRestrictions(this.ThumbnailRefreshPeriod, 10, 1000);
+#else
 			this.ThumbnailRefreshPeriod = ThumbnailConfiguration.ApplyRestrictions(this.ThumbnailRefreshPeriod, 300, 1000);
+#endif
+			this.ThumbnailResizeTimeoutPeriod = ThumbnailConfiguration.ApplyRestrictions(this.ThumbnailResizeTimeoutPeriod, 200, 5000);
 			this.ThumbnailSize = new Size(ThumbnailConfiguration.ApplyRestrictions(this.ThumbnailSize.Width, this.ThumbnailMinimumSize.Width, this.ThumbnailMaximumSize.Width),
 				ThumbnailConfiguration.ApplyRestrictions(this.ThumbnailSize.Height, this.ThumbnailMinimumSize.Height, this.ThumbnailMaximumSize.Height));
 			this.ThumbnailOpacity = ThumbnailConfiguration.ApplyRestrictions((int)(this.ThumbnailOpacity * 100.00), 20, 100) / 100.00;

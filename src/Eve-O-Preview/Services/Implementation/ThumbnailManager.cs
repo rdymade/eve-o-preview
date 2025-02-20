@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Threading;
@@ -81,6 +82,15 @@ namespace EveOPreview.Services
 
 			RegisterCycleClientHotkey(this._configuration.CycleGroup2ForwardHotkeys?.Select(x => this._configuration.StringToKey(x)), true, this._configuration.CycleGroup2ClientsOrder);
 			RegisterCycleClientHotkey(this._configuration.CycleGroup2BackwardHotkeys?.Select(x => this._configuration.StringToKey(x)), false, this._configuration.CycleGroup2ClientsOrder);
+
+			RegisterCycleClientHotkey(this._configuration.CycleGroup3ForwardHotkeys?.Select(x => this._configuration.StringToKey(x)), true, this._configuration.CycleGroup3ClientsOrder);
+			RegisterCycleClientHotkey(this._configuration.CycleGroup3BackwardHotkeys?.Select(x => this._configuration.StringToKey(x)), false, this._configuration.CycleGroup3ClientsOrder);
+
+			RegisterCycleClientHotkey(this._configuration.CycleGroup4ForwardHotkeys?.Select(x => this._configuration.StringToKey(x)), true, this._configuration.CycleGroup4ClientsOrder);
+			RegisterCycleClientHotkey(this._configuration.CycleGroup4BackwardHotkeys?.Select(x => this._configuration.StringToKey(x)), false, this._configuration.CycleGroup4ClientsOrder);
+
+			RegisterCycleClientHotkey(this._configuration.CycleGroup5ForwardHotkeys?.Select(x => this._configuration.StringToKey(x)), true, this._configuration.CycleGroup5ClientsOrder);
+			RegisterCycleClientHotkey(this._configuration.CycleGroup5BackwardHotkeys?.Select(x => this._configuration.StringToKey(x)), false, this._configuration.CycleGroup5ClientsOrder);
 		}
 
 		public IThumbnailView GetClientByTitle(string title)
@@ -101,8 +111,11 @@ namespace EveOPreview.Services
 		public void SetActive(KeyValuePair<IntPtr, IThumbnailView> newClient)
 		{
 			this.GetActiveClient()?.ClearBorder();
-
-			this._windowManager.ActivateWindow(newClient.Key);
+#if LINUX
+			this._windowManager.ActivateWindow(newClient.Key, newClient.Value.Title);
+#else
+			this._windowManager.ActivateWindow(newClient.Key, this._configuration.WindowsAnimationStyle);
+#endif
 			this.SwitchActiveClient(newClient.Key, newClient.Value.Title);
 
 			newClient.Value.SetHighlight();
@@ -126,10 +139,43 @@ namespace EveOPreview.Services
 
 			foreach (var t in clientOrder)
 			{
-				if (t.Key == _activeClient.Title)
+				if (t.Key == _activeClient.Title && t.Key != "EVE")
 				{
 					setNextClient = true;
 					lastClient = _thumbnailViews.FirstOrDefault(x => x.Value.Title == t.Key).Value;
+					continue;
+				}
+
+				// cycle through login screens ?
+				if (t.Key == _activeClient.Title && t.Key == "EVE")
+				{
+					lastClient = _thumbnailViews.FirstOrDefault(x => x.Value.Title == t.Key && x.Value.Id == _activeClient.Handle).Value;
+					if (lastClient == null)
+					{
+						setNextClient = true;
+						continue;
+					}
+					var possibleClients = (isForwards ? _thumbnailViews.OrderBy(x => x.Value.Id.ToInt64()) : _thumbnailViews.OrderByDescending(x => x.Value.Id.ToInt64())).Where(x => x.Value.Title == t.Key);
+					foreach (var pc in possibleClients)
+					{
+						if ( pc.Value.Id.Equals(lastClient.Id) )
+						{
+							setNextClient = true;
+							continue;
+						}
+
+						if (!setNextClient)
+						{
+							continue;
+						}
+
+						// this is the next client (at login screen)
+						SetActive(pc);
+						return;
+					}
+
+					// rolled off top of list - back to first (if any there!)
+					// set next client ?
 					continue;
 				}
 
@@ -140,7 +186,9 @@ namespace EveOPreview.Services
 
 				if (_thumbnailViews.Any(x => x.Value.Title == t.Key))
 				{
-					var ptr = _thumbnailViews.First(x => x.Value.Title == t.Key);
+					var ptr = t.Key.Equals("EVE") ? 
+						(isForwards ? _thumbnailViews.OrderBy(x => x.Value.Id.ToInt64()) : _thumbnailViews.OrderByDescending(x => x.Value.Id.ToInt64())).First(x => x.Value.Title == t.Key)
+						: _thumbnailViews.First(x => x.Value.Title == t.Key);
 					SetActive(ptr);
 					return;
 				}
@@ -151,7 +199,9 @@ namespace EveOPreview.Services
 			{
 				if (_thumbnailViews.Any(x => x.Value.Title == t.Key))
 				{
-					var ptr = _thumbnailViews.First(x => x.Value.Title == t.Key);
+					var ptr = t.Key.Equals("EVE") ?
+						(isForwards ? _thumbnailViews.OrderBy(x => x.Value.Id.ToInt64()) : _thumbnailViews.OrderByDescending(x => x.Value.Id.ToInt64())).First(x => x.Value.Title == t.Key)
+						: _thumbnailViews.First(x => x.Value.Title == t.Key);
 					SetActive(ptr);
 					_activeClient = (ptr.Key, t.Key);
 					return;
@@ -207,6 +257,12 @@ namespace EveOPreview.Services
 
 			foreach (IProcessInfo process in addedProcesses)
 			{
+				Size initialSize = this._configuration.ThumbnailSize;
+				if (this._configuration.PerClientThumbnailSize.Any(x => x.Key == process.Title))
+				{
+					initialSize = this._configuration.PerClientThumbnailSize[process.Title];
+				}
+
 				IThumbnailView view = this._thumbnailViewFactory.Create(process.Handle, process.Title, this._configuration.ThumbnailSize);
 				view.IsOverlayEnabled = this._configuration.ShowThumbnailOverlays;
 				view.SetFrames(this._configuration.ShowThumbnailFrames);
@@ -230,7 +286,7 @@ namespace EveOPreview.Services
 
 				view.RegisterHotkey(this._configuration.GetClientHotkey(view.Title));
 
-				this.ApplyClientLayout(view.Id, view.Title);
+				this.ApplyClientLayout(view);
 
 				// TODO Add extension filter here later
 				if (view.Title != ThumbnailManager.DEFAULT_CLIENT_TITLE)
@@ -257,7 +313,7 @@ namespace EveOPreview.Services
 
 					view.RegisterHotkey(this._configuration.GetClientHotkey(process.Title));
 
-					this.ApplyClientLayout(view.Id, view.Title);
+					this.ApplyClientLayout(view);
 				}
 			}
 
@@ -400,6 +456,15 @@ namespace EveOPreview.Services
 					continue;
 				}
 
+				if (this._configuration.HideLoginClientThumbnail && (view.Title == DEFAULT_CLIENT_TITLE ))
+				{
+					if (view.IsActive)
+					{
+						view.Hide();
+					}
+					continue;
+				}
+
 				// No need to update Thumbnails while one of them is highlighted
 				if (!this._isHoverEffectActive)
 				{
@@ -407,6 +472,7 @@ namespace EveOPreview.Services
 					if (this.IsManageableThumbnail(view))
 					{
 						view.ThumbnailLocation = this._configuration.GetThumbnailLocation(view.Title, this._activeClient.Title, view.ThumbnailLocation);
+						view.ThumbnailSize = this._configuration.GetThumbnailSize(view.Title, this._activeClient.Title, view.ThumbnailSize);
 					}
 
 					view.SetOpacity(this._configuration.ThumbnailOpacity);
@@ -483,7 +549,7 @@ namespace EveOPreview.Services
 			// Minimize the currently active client if needed
 			if (this._configuration.MinimizeInactiveClients && !this._configuration.IsPriorityClient(this._activeClient.Title))
 			{
-				this._windowManager.MinimizeWindow(this._activeClient.Handle, false);
+				this._windowManager.MinimizeWindow(this._activeClient.Handle, this._configuration.WindowsAnimationStyle, false);
 			}
 
 			this._activeClient = (foregroundClientHandle, foregroundClientTitle);
@@ -534,7 +600,11 @@ namespace EveOPreview.Services
 
 			Task.Run(() =>
 				{
-					this._windowManager.ActivateWindow(view.Id);
+#if LINUX
+					this._windowManager.ActivateWindow(view.Id, view.Title);
+#else
+					this._windowManager.ActivateWindow(view.Id, this._configuration.WindowsAnimationStyle);
+#endif
 				})
 				.ContinueWith((task) =>
 				{
@@ -549,7 +619,11 @@ namespace EveOPreview.Services
 		{
 			if (switchOut)
 			{
-				this._windowManager.ActivateWindow(this._externalApplication);
+#if LINUX
+				this._windowManager.ActivateWindow(this._externalApplication, null);
+#else
+				this._windowManager.ActivateWindow(this._externalApplication, this._configuration.WindowsAnimationStyle);
+#endif
 			}
 			else
 			{
@@ -558,7 +632,7 @@ namespace EveOPreview.Services
 					return;
 				}
 
-				this._windowManager.MinimizeWindow(view.Id, true);
+				this._windowManager.MinimizeWindow(view.Id, this._configuration.WindowsAnimationStyle, true);
 				this.RefreshThumbnails();
 			}
 		}
@@ -612,7 +686,7 @@ namespace EveOPreview.Services
 			return false;
 		}
 
-		// Check whether the currently active window belongs to EVE-O Preview itself
+		// Check whether the currently active window belongs to EVE-O-Preview itself
 		private bool IsMainWindowActive(IntPtr windowHandle)
 		{
 			return (this._processMonitor.GetMainProcess().Handle == windowHandle);
@@ -622,7 +696,7 @@ namespace EveOPreview.Services
 		{
 			this.DisableViewEvents();
 
-			view.ZoomIn(ViewZoomAnchorConverter.Convert(this._configuration.ThumbnailZoomAnchor), this._configuration.ThumbnailZoomFactor);
+			view.ZoomIn(ViewZoomAnchorConverter.Convert(view.ClientZoomAnchor), this._configuration.ThumbnailZoomFactor);
 			view.Refresh(false);
 
 			this.EnableViewEvents();
@@ -718,8 +792,11 @@ namespace EveOPreview.Services
 			return (0, 0);
 		}
 
-		private void ApplyClientLayout(IntPtr clientHandle, string clientTitle)
+		private void ApplyClientLayout(IThumbnailView view)
 		{
+			IntPtr clientHandle = view.Id;
+			string clientTitle = view.Title;
+
 			if (!this._configuration.EnableClientLayoutTracking)
 			{
 				return;
@@ -746,6 +823,8 @@ namespace EveOPreview.Services
 			{
 				this._windowManager.MoveWindow(clientHandle, clientLayout.X, clientLayout.Y, clientLayout.Width, clientLayout.Height);
 			}
+
+			view.ClientZoomAnchor = this._configuration.GetZoomAnchor(clientTitle, this._configuration.ThumbnailZoomAnchor);
 		}
 
 		private void UpdateClientLayouts()

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Drawing;
 using System.Windows.Forms;
+using EveOPreview.Configuration;
 using EveOPreview.Services;
 
 namespace EveOPreview.View
@@ -14,12 +15,13 @@ namespace EveOPreview.View
 		Point ThumbnailLocation { get; set; }
 		Size ThumbnailSize { get; set; }
 		bool IsOverlayEnabled { get; set; }
-
+		ZoomAnchor ClientZoomAnchor { get; set; }
 		bool IsKnownHandle(IntPtr handle);
 
 		void SetSizeLimitations(Size minimumSize, Size maximumSize);
 		void SetOpacity(double opacity);
 		void SetFrames(bool enable);
+		void SetOverlayLabel();
 		void SetTopMost(bool enableTopmost);
 		void SetHighlight();
 		void SetHighlight(bool enabled, int width);

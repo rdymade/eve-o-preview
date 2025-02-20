@@ -30,11 +30,24 @@ Video Guides:
 
 * [Eve online , How To : EVE-O Preview (multiboxing; legal)](https://youtu.be/2r0NMKbogXU)
 
+## Development Details
+Use this info to deploy this git in your own dev environment to play with the code and build your own EXE.
+
+1. Install VS Studio (not code)
+* DEPENDENCIES
+  * Core
+  * .NET desktop development workload w/ 4.8 framework
+2. Clone the Git - https://github.com/Proopai/eve-o-preview
+3. Open the Project/Solution
+4. You can now edit code
+5. To build, Right click the `Eve-O-Preview` project in the `Solutions Explorer` and select `Build`
+
+If you did everything correct, VS will now build the project in seconds and tell you where it placed the EXE.
 
 ## System Requirements
 
 * Windows 7, Windows 8/8.1, Windows 10, Windows 11, Linux Wine
-* Microsoft .NET Framework 4.6.2+
+* Microsoft .NET Framework 4.8+
 * EVE clients Display Mode should be set to **Fixed Window** or **Window Mode**. **Fullscreen** mode is not supported.
 
 <div style="page-break-after: always;"></div>
@@ -68,6 +81,7 @@ CCP Grimmi wrote:
 | Track client locations | Determines whether the client's window position should be restored when it is activated or started |
 | Hide preview of active EVE client | Determines whether the thumbnail corresponding to the active EVE client is not displayed |
 | Minimize inactive EVE clients | Allows to auto-minimize inactive EVE clients to save CPU and GPU |
+| Animation Style | Use original animation style (0) or No Animation style (1). You may find Original is cleaner with fixed window mode and No Animation is cleaner with windowed mode. Especially when using minimize inactive clients.
 | Previews always on top | Determines whether EVE client thumbnails should stay on top of all other windows |
 | Hide previews when EVE client is not active | Determines whether all thumbnails should be visible only when an EVE client is active |
 | Unique layout for each EVE client | Determines whether thumbnails positions are different depending on the EVE client being active |
@@ -78,6 +92,9 @@ CCP Grimmi wrote:
 | Opacity | Determines the inactive EVE thumbnails opacity (from almost invisible 20% to 100% solid) |
 | Thumbnail Width | Thumbnails width. Can be set to any value from **100** to **640** points |
 | Thumbnail Height | Thumbnails Height. Can be set to any value from **80** to **400** points |
+| Lock Thumbnail Location | Lock position of thumbnails, preventing misclicks moving your thumbnails |
+| Thumbnail Snap to Grid | Force Thumbnails to snap to defined grid when moved |
+| Snap X / Snap Y | X/Y grid Pixels |
 
 #### **Zoom** Tab
 | Option | Description |
@@ -93,6 +110,9 @@ CCP Grimmi wrote:
 | Show frames | Determines whether thumbnails should be displays with window caption and borders |
 | Highlight active client | Determines whether the thumbnail of the active EVE client should be highlighted with a bright border |
 | Color | Color used to highlight the active client's thumbnail in case the corresponding option is set |
+| Label Size | The fontsize of the overlay label (Character Name) |
+| Label Color | The color of the Font for the Overlay Label |
+| Position | The position of the overlay label in the thumbnail |
 
 #### **Active Clients** Tab
 | Option | Description |
@@ -128,10 +148,13 @@ Some of the application options are not exposed in the GUI. They can be adjusted
 | **CompatibilityMode** | <div style="font-size: small">Enables the alternative render mode (see below)<br />The default value is **false**<br />For example: **"CompatibilityMode": true**</div> |
 | **EnableThumbnailSnap** | <div style="font-size: small">Allows to disable thumbnails snap feature by setting its value to **false**<br />The default value is **true**<br />For example: **"EnableThumbnailSnap": true**</div> |
 | **HideThumbnailsDelay** | <div style="font-size: small">Delay before thumbnails are hidden if the **General** -> **Hide previews when EVE client is not active** option is enabled<br />The delay is measured in thumbnail refresh periods<br />The default value is **2** (corresponds to 1 second delay)<br />For example: **"HideThumbnailsDelay": 2**</div> |
+| **HideLoginClientThumbnail** | <div style="font-size: small">Hide EVE login window clients. If an Eve online client is sat at character selection screen - hide the preview window for this client<br />The default value is **false**<br />For example: **"HideLoginClientThumbnail": false**</div> |
 | **PriorityClients** | <div style="font-size: small">Allows to set a list of clients that are not auto-minimized on inactivity even if the **Minimize inactive EVE clients** option is enabled. Listed clients still can be minimized using Windows hotkeys or via _Ctrl+Click_ on the corresponding thumbnail<br />The default value is empty list **[]**<br />For example: **"PriorityClients": [ "EVE - Phrynohyas Tig-Rah", "EVE - Ondatra Patrouette" ]**</div> |
 | **ThumbnailMinimumSize** | <div style="font-size: small">Minimum thumbnail size that can be set either via GUI or by resizing a thumbnail window. Value is written in the form "width, height"<br />The default value is **"100, 80"**.<br />For example: **"ThumbnailMinimumSize": "100, 80"**</div> |
 | **ThumbnailMaximumSize** | <div style="font-size: small">Maximum thumbnail size that can be set either via GUI or by resizing a thumbnail window. Value is written in the form "width, height"<br />The default value is **"640, 400"**.<br />For example: **"ThumbnailMaximumSize": "640, 400"**</div> |
-| **ThumbnailRefreshPeriod** | <div style="font-size: small">Thumbnail refresh period in milliseconds. This option accepts values between **300** and **1000** only.<br />The default value is **500** milliseconds.<br />For example: **"ThumbnailRefreshPeriod": 500**</div> |
+| **ThumbnailRefreshPeriod** | <div style="font-size: small">Thumbnail refresh period in milliseconds. This option accepts values between **300** and **1000** only.<br />The default value is **500** milliseconds. For LINUX build this can go down to **10**<br />For example: **"ThumbnailRefreshPeriod": 500**</div> |
+| **ThumbnailResizeTimeoutPeriod** | <div style="font-size: small">Thumbnail Resize Timeout period in milliseconds. This option accepts values between **200** and **5000** only.<br />The default value is **500** milliseconds.<br />For example: **"ThumbnailResizeTimeoutPeriod": 500**. If you are having the preview windows resize incorrectly on startup increase this value.</div> |
+| **ExecutablesToPreview** | <div style="font-size: small">List of executables to display preview windows for. List of strings.<br />The default value is **"exefile"**.<br />For example: **"ExecutablesToPreview": ["exefile","wow","Diablo IV"]**. If you are having the preview windows resize incorrectly on startup increase this value.</div> |
 
 <div style="page-break-after: always;"></div>
 
@@ -197,19 +220,29 @@ Next find the entry **CycleGroup1ForwardHotkeys**. Most probably it will look li
 You should modify this entry with a list of each of your clients replacing "Example DPS Toon 1", etc with the name of your character. The numbers on the right are used to force the order in which they cycle.
 If a character appears in the list but is not currently logged in, then it will simply be skipped.
 If a character does not appear in the list, then they will never become active when cycling clients.
+If "EVE" is used instead of a character name - then this is taken to mean active clients with no active character (ie on character selection screen). This would allow you to setup a cycle group to go through clients at character selection screen. EVE-O Preview will cycle through all clients in this state.
 
-By now you may have noticed that there are two groups. The above configuration can be followed for a second group by using the values **CycleGroup2ForwardHotkeys**, **CycleGroup2BackwardHotkeys**, and **CycleGroup2ForwardHotkeys**
-This may provide useful if you want to have one HotKey to cycle through a group of DPS characters, while another HotKey cycles through support roles such as gate scouts, or a group of logi.
+By now you may have noticed that there are multiple groups. The above configuration can be followed for a second group by using the values **CycleGroup2ForwardHotkeys**, **CycleGroup2BackwardHotkeys**, and **CycleGroup2ForwardHotkeys**
+This may provide useful if you want to have one HotKey to cycle through a group of DPS characters, while another HotKey cycles through support roles such as gate scouts, or a group of logi. Cyclegroups are numbered 1 through 5.
 
 Alternatively you may not want to use any of these HotKeys. Please note that deleting the values in their entirety will simply result in them being automatically re-generated.
 Should you wish to remove these HotKeys completely, Simply set the values to empty, such as the example below:
 
-      "CycleGroup1ForwardHotkeys": [],
+    "CycleGroup1ForwardHotkeys": [],
 	  "CycleGroup1BackwardHotkeys": [],
 	  "CycleGroup1ClientsOrder": {},
 	  "CycleGroup2ForwardHotkeys": [],
 	  "CycleGroup2BackwardHotkeys": [],
-	  "CycleGroup2ClientsOrder": {}
+	  "CycleGroup2ClientsOrder": {},
+	  "CycleGroup3ForwardHotkeys": [],
+	  "CycleGroup3BackwardHotkeys": [],
+	  "CycleGroup3ClientsOrder": {},
+	  "CycleGroup4ForwardHotkeys": [],
+	  "CycleGroup4BackwardHotkeys": [],
+	  "CycleGroup4ClientsOrder": {},
+	  "CycleGroup5ForwardHotkeys": [],
+	  "CycleGroup5BackwardHotkeys": [],
+	  "CycleGroup5ClientsOrder": {}
 
 **Hints** 
 * Minimise the use of modifiers or standard keys to minimise issues with the client playing up. In the default example unusual Function keys (e.g. F14) are used which are then bound to a game pad or gaming mouse.
@@ -236,6 +269,42 @@ If a client does not appear in this list, then it will use the global highlight 
 
 **Hint** For a list of supported colors see: https://docs.microsoft.com/en-us/dotnet/api/system.drawing.color#properties
 
+### Per Client Thumbnail Size
+Would you like to have different clients with different thumbnail sizes ?
+
+EVE-O Preview doesn't provide any GUI to set the these per client overrides as yet. Though, It can be done via editing the configuration file directly. 
+**Note** Don't forget to make a backup copy of the file before editing it.
+
+Open the file using any text editor. find the entry **PerClientThumbnailSize**. Most probably it will look like
+
+    "PerClientThumbnailSize": {
+      "EVE - Example Toon 1": "240, 180",
+      "EVE - Example Toon 2": "200, 100",
+      "EVE": "320, 240"
+    }
+
+You should modify this entry with a list of each of your clients replacing "Example Toon 1", etc with the name of your character. The values on the right represent the size of the thumbnail.
+
+If a client does not appear in this list, then it will use the global thumbnail size by default.
+
+### Per Client Zoom Anchor
+Would you like to have different clients with different ZoomAnchor for each thumbnail ?
+
+EVE-O Preview doesn't provide any GUI to set the these per client overrides as yet. Though, It can be done via editing the configuration file directly. 
+**Note** Don't forget to make a backup copy of the file before editing it.
+
+Open the file using any text editor. find the entry **PerClientZoomAnchor**. Most probably it will look like
+
+    "PerClientZoomAnchor": {
+      "EVE - Example Toon 1": 1,
+      "EVE - Example Toon 2": 2,
+      "EVE": 3
+    }
+
+You should modify this entry with a list of each of your clients replacing "Example Toon 1", etc with the name of your character. The values on the right represent the Zoom Anchor for the thumbnail (which sets the starting point of the thumbnail zoom).
+Valid values are 0-8 : 0-NW, 1-North, 2-NE, 3-West, 4-Center, 5-East, 6-SW, 7-South, 8-SE.
+
+If a client does not appear in this list, then it will use the global Zoom Anchor by default.
 ### Compatibility Mode
 
 This setting allows to enable an alternate thumbnail render. This render doesn't use advanced DWM API to create live previews. Instead it is a screenshot-based render with the following pros and cons:
@@ -243,6 +312,15 @@ This setting allows to enable an alternate thumbnail render. This render doesn't
 * `-`  Consumes significantly more memory. In the testing environment EVE-O Preview did consume around 180 MB to manage 3 thumbnails using this render. At the same time the primary render did consume around 50 MB when run in the same environment.
 * `-`  Thumbnail images are refreshed at 1 FPS rate
 * `-`  Possible short mouse cursor freezes
+
+### Release build
+
+Release builds are generated using github actions when a release is created from tag. If you wish to build locally the variable EVEOTARGET controls Linux or Windows source inclusion.
+
+You can build using : 
+
+* dotnet build src\\Eve-O-Preview\\Eve-O-Preview.csproj --configuration Release -p:EVEOTARGET="Linux" -p:AssemblyVersion="8.0.2.0"
+* dotnet build src\\Eve-O-Preview\\Eve-O-Preview.csproj --configuration Release   -p:EVEOTARGET="Windows" -p:AssemblyVersion="8.0.2.0"
 
 <div style="page-break-after: always;"></div>
 
@@ -253,6 +331,8 @@ This setting allows to enable an alternate thumbnail render. This render doesn't
 * Devilen
   
 * Dal Shooth
+
+* Izakbar
 
 
 ### Created by
@@ -289,5 +369,5 @@ https://bitbucket.org/ulph/eve-o-preview-git
 
 ## CCP Copyright Notice
 
-EVE Online, the EVE logo, EVE and all associated logos and designs are the intellectual property of CCP hf. All artwork, screenshots, characters, vehicles, storylines, world facts or other recognizable features of the intellectual property relating to these trademarks are likewise the intellectual property of CCP hf. EVE Online and the EVE logo are the registered trademarks of CCP hf. All rights are reserved worldwide. All other trademarks are the property of their respective owners. CCP hf. has granted permission to pyfa to use EVE Online and all associated logos and designs for promotional and information purposes on its website but does not endorse, and is not in any way affiliated with, pyfa. CCP is in no way responsible for the content on or functioning of this program, nor can it be liable for any damage arising from the use of this program. 
+EVE Online, the EVE logo, EVE and all associated logos and designs are the intellectual property of CCP hf. All artwork, screenshots, characters, vehicles, storylines, world facts or other recognizable features of the intellectual property relating to these trademarks are likewise the intellectual property of CCP hf. EVE Online and the EVE logo are the registered trademarks of CCP hf. All rights are reserved worldwide. All other trademarks are the property of their respective owners. CCP hf. has granted permission to Eve-O-Preview to use EVE Online and all associated logos and designs for promotional and information purposes on its website but does not endorse, and is not in any way affiliated with, Eve-O-Preview. CCP is in no way responsible for the content on or functioning of this program, nor can it be liable for any damage arising from the use of this program. 
 
